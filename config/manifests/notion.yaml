@@ -1,0 +1,55 @@
+# Notion's remote MCP server (arch §6.5).
+#
+# The open-source `makenotion/notion-mcp-server` repository is no longer
+# actively maintained and Notion recommends the hosted service instead, so the
+# remote endpoint is the default. To self-host it anyway, replace `source` with:
+#
+#   source:
+#     type: npm
+#     package: "@notionhq/notion-mcp-server"
+#     version: "<pinned>"
+#
+# and set `trust: community`, which forces the sandbox profile below to apply.
+id: notion
+name: Notion
+description: Notion pages, databases and search via Notion's official remote MCP server.
+namespace: notion
+homepage: https://github.com/makenotion/notion-mcp-server
+
+source:
+  type: remote
+  endpoint: https://mcp.notion.com/mcp
+  transport: streamable-http
+  verify_tls: true
+
+trust: remote_official
+
+auth:
+  type: oauth2
+  secret:
+    name: NOTION_TOKEN
+    per_user: true
+    required: false
+
+capabilities:
+  - documents
+  - databases
+  - search
+
+risk_level: WRITE
+tool_risk:
+  search: READ
+  fetch: READ
+  get-page: READ
+  create-pages: WRITE
+  update-page: WRITE
+  move-pages: WRITE
+  delete-page: DESTRUCTIVE
+
+confirmation_required:
+  - create
+  - update
+  - move
+  - delete
+
+update_policy: manual

@@ -1,0 +1,61 @@
+# Reference Git server (arch §6.6). Pinned to an exact release.
+#
+# Operates on repositories under the mounted workspace. Commit and checkout
+# rewrite history-adjacent state, so they need confirmation; `git_reset` throws
+# work away outright and is classified DESTRUCTIVE.
+id: git
+name: Git
+description: Inspect, stage, commit and diff Git repositories in the workspace.
+namespace: git
+homepage: https://github.com/modelcontextprotocol/servers
+
+source:
+  type: python
+  package: mcp-server-git
+  version: "2026.7.10"
+  module: mcp_server_git
+  transport: stdio
+  args:
+    - "--repository"
+    - /workspace
+
+trust: local_official
+
+runtime:
+  isolation: container
+  read_only_root: true
+  network: none
+  run_as_non_root: true
+  cpu_limit: 0.5
+  memory_limit_mb: 256
+  allowed_env:
+    - PATH
+    - HOME
+    - GIT_AUTHOR_NAME
+    - GIT_AUTHOR_EMAIL
+  mounts:
+    - "runtime/workspace:/workspace"
+
+capabilities:
+  - version-control
+
+risk_level: WRITE
+tool_risk:
+  git_status: READ
+  git_diff: READ
+  git_diff_unstaged: READ
+  git_diff_staged: READ
+  git_log: READ
+  git_show: READ
+  git_add: WRITE
+  git_commit: WRITE
+  git_create_branch: WRITE
+  git_checkout: WRITE
+  git_reset: DESTRUCTIVE
+
+confirmation_required:
+  - git_commit
+  - git_checkout
+  - git_reset
+
+update_policy: manual

@@ -1,0 +1,63 @@
+# Reference filesystem server (arch §6.6).
+#
+# The MCP project describes these as reference implementations and warns they
+# are not necessarily production-ready, so the version is pinned to an exact
+# release rather than tracking `latest` — arch §6.6 and §33.
+#
+# This one reads and writes the host filesystem, which makes it the most
+# dangerous server the hub ships. The container gets exactly one directory
+# (`runtime/workspace`, mounted read-only by default) and no network at all.
+# Widen `mounts` deliberately, and remember that anything mounted writable is
+# reachable by any agent whose policy allows `filesystem.write_file`.
+id: filesystem
+name: Filesystem
+description: Read, write and search files inside an explicitly mounted workspace.
+namespace: filesystem
+homepage: https://github.com/modelcontextprotocol/servers
+
+source:
+  type: npm
+  package: "@modelcontextprotocol/server-filesystem"
+  version: "2026.7.10"
+  transport: stdio
+  args:
+    - /workspace
+
+trust: local_official
+
+runtime:
+  isolation: container
+  read_only_root: true
+  network: none            # a filesystem server has no business making requests
+  run_as_non_root: true
+  cpu_limit: 0.5
+  memory_limit_mb: 256
+  allowed_env:
+    - PATH
+    - HOME
+  mounts:
+    - "runtime/workspace:/workspace"
+
+capabilities:
+  - filesystem
+
+risk_level: WRITE
+tool_risk:
+  read_file: READ
+  read_text_file: READ
+  read_media_file: READ
+  list_directory: READ
+  directory_tree: READ
+  search_files: READ
+  get_file_info: READ
+  write_file: WRITE
+  edit_file: WRITE
+  create_directory: WRITE
+  move_file: WRITE
+
+confirmation_required:
+  - write_file
+  - edit_file
+  - move_file
+
+update_policy: manual

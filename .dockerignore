@@ -1,0 +1,35 @@
+# Keep the build context small and free of anything secret.
+#
+# `.env` is excluded on purpose: credentials reach a container through
+# `env_file`/`--env-file` at run time, never baked into an image layer where
+# they would survive in the registry (arch §21, §31).
+
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+.venv
+__pycache__/
+*.py[cod]
+*.egg-info
+build/
+dist/
+wheels/
+
+# Mutable state — the container makes its own.
+runtime/
+
+# Tooling caches and local tool config.
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.claude/
+
+# Not needed to run the hub.
+tests/
+docs/
+config/mcp/

@@ -1,0 +1,55 @@
+# Brave's official Search MCP server (arch §6.4).
+#
+# `BRAVE_API_KEY` comes from the secret manager and is injected as an
+# environment variable at launch — arch §6.4 forbids putting it in YAML, and the
+# `allowed_env` list below means nothing else from the hub's environment reaches
+# the server process.
+id: brave-search
+name: Brave Search
+description: Web, news, image, video, local and place search with AI summarisation.
+namespace: brave_search
+homepage: https://github.com/brave/brave-search-mcp-server
+
+source:
+  type: git
+  repository: https://github.com/brave/brave-search-mcp-server.git
+  branch: main
+  transport: stdio
+  startup_timeout_seconds: 60
+
+trust: local_official
+
+auth:
+  type: api_key
+  env_var: BRAVE_API_KEY
+  secret:
+    name: BRAVE_API_KEY
+    per_user: false   # a metered account key, shared by the deployment
+    required: true
+
+runtime:
+  isolation: container
+  read_only_root: true
+  network: outbound
+  run_as_non_root: true
+  cpu_limit: 0.5
+  memory_limit_mb: 384
+  allowed_env:
+    - BRAVE_API_KEY
+    - PATH
+    - HOME
+    - NODE_ENV
+
+capabilities:
+  - web-search
+  - news-search
+  - image-search
+  - video-search
+  - local-search
+  - summarization
+
+# Search only reads the public web, so every tool here is READ and none of them
+# need confirmation.
+risk_level: READ
+
+update_policy: manual

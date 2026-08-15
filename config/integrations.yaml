@@ -1,0 +1,74 @@
+# Desired state (arch §5, §62).
+#
+# This file says *which* integrations you want and how you want them treated.
+# It does not define them — that is `config/manifests/<id>.yaml`. Dropping a new
+# manifest in that directory is enough to register an integration (arch §50);
+# adding it here is what turns it on.
+#
+# The hub owns this file. `mcp-hub enable/disable/install/remove` rewrite it
+# through validated models rather than text substitution (arch §38), so hand
+# edits are fine but comments are not preserved across a machine write.
+#
+# Resolved state — the commit, version or digest actually installed — lives in
+# `integrations.lock.yaml` and is written by the update manager, never by hand.
+
+version: 1
+
+# How many tool schemas an agent sees (arch §13).
+#   full       every tool of every healthy integration
+#   selective  only what the policy allowlist admits  <- default
+#   discovery  a few router tools; integrations activate on demand
+#
+# `selective` is the default because a hub with everything enabled can present
+# several hundred tools, which degrades model tool selection long before it
+# breaks any limit.
+tool_exposure_mode: selective
+
+integrations:
+  # ---- remote official: proxied, never cloned (arch §6.1, §6.2, §6.5) ----
+
+  jira:
+    enabled: true
+
+  figma:
+    enabled: true
+
+  notion:
+    enabled: true
+
+  # ---- local official: built and run here, isolated (arch §6.3, §6.4) ----
+  #
+  # Both need a credential before they can serve. They stay listed and disabled
+  # so `mcp-hub health` reports AUTH_REQUIRED rather than hiding them:
+  #   mcp-hub secrets set GITHUB_TOKEN   # then: mcp-hub enable github
+  #   mcp-hub secrets set BRAVE_API_KEY  # then: mcp-hub enable brave-search
+
+  github:
+    enabled: false
+
+  brave-search:
+    enabled: false
+
+  # ---- reference servers: pinned, sandboxed (arch §6.6) ----
+  #
+  # The MCP project ships these as reference implementations and says plainly
+  # they are not necessarily production-ready. They are pinned to exact releases
+  # and default to off; enable the ones you actually want.
+
+  fetch:
+    enabled: true
+
+  time:
+    enabled: true
+
+  filesystem:
+    enabled: false   # mounts a host directory — review config/manifests/filesystem.yaml first
+
+  git:
+    enabled: false   # operates on repositories in the mounted workspace
+
+  memory:
+    enabled: false
+
+  sequential-thinking:
+    enabled: false

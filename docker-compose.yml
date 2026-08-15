@@ -1,0 +1,147 @@
+# MCP Hub — local stack (arch §43).
+#
+#   make docker-up          start hub + postgres + redis
+#   make docker-down        stop everything (volumes survive)
+#   docker compose logs -f mcp-hub
+#   docker compose exec mcp-hub mcp-hub list
+#   docker compose --profile tools up inspector    # arch §67
+#
+# The hub is then at http://localhost:8000, and the single MCP endpoint agents
+# connect to is http://localhost:8000/mcp (arch §10).
+#
+# This file is tuned for local work: `MCP_HUB_ENV=development`, so the hub does
+# not demand an auth secret before it will start. It is a starting point for
+# production, not a production deployment — see the README's production section
+# for what changes (TLS, secrets from a manager, replicas, real resource limits).
+
+name: mcp-hub
+
+services:
+  mcp-hub:
+    build:
+      context: .
+      # Add `args: {WITH_DOCKER_CLI: "1"}` only if you need docker-sourced
+      # integrations, and read the note at the bottom of this file first.
+    image: mcp-hub:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${MCP_HUB_PORT:-8000}:8000"
+    environment:
+      MCP_HUB_ENV: development
+      MCP_HUB_HOST: 0.0.0.0
+      MCP_HUB_PORT: 8000
+      MCP_HUB_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-mcp_hub}:${POSTGRES_PASSWORD:-mcp_hub}@postgres:5432/${POSTGRES_DB:-mcp_hub}
+      MCP_HUB_REDIS_URL: redis://redis:6379/0
+      # Compose applies the schema on start so a fresh clone just works. In
+      # production this is a reviewed deploy step instead (arch §27).
+      MCP_HUB_AUTO_MIGRATE: "true"
+    env_file:
+      # Your credentials — copy .env.example to .env. Optional: the stack starts
+      # without it, and integrations that need a token report AUTH_REQUIRED
+      # rather than failing the hub (arch §45).
+      - path: .env
+        required: false
+    volumes:
+      # Read-write on purpose: `mcp-hub enable/disable/install` rewrite
+      # config/integrations.yaml, and those decisions should survive the
+      # container (arch §38).
+      - ./config:/app/config
+      # Installed versions, backups, caches and logs. A bind mount rather than a
+      # named volume so `mcp-hub logs <name>` and rollback points are readable
+      # from the host.
+      - ./runtime:/app/runtime
+    # Both mounts are host directories, so the container must write as you.
+    # Override in `.env` if your files are not owned by uid/gid 1000:
+    #   HOST_UID=$(id -u)
+    #   HOST_GID=$(id -g)
+    # Drop this line to run as the image's own unprivileged user (uid 10001),
+    # which is the right choice in production with real volumes.
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    # Third-party MCP servers are launched as child processes here, so the
+    # container gets no more privilege than it needs (arch §31).
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mcp_hub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mcp_hub}
+      POSTGRES_DB: ${POSTGRES_DB:-mcp_hub}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready` alone reports true during the init phase, when the server
+      # is briefly up on a local socket only — hence the explicit database.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mcp_hub} -d ${POSTGRES_DB:-mcp_hub}"]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 10
+    # Not published by default: nothing outside this network needs it. Uncomment
+    # to inspect with psql from the host.
+    # ports:
+    #   - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Locks, rate limits and caches (arch §28, §30). Nothing here is a system of
+    # record, so persistence is off — a restart costs a cache, never data.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      start_period: 5s
+      retries: 10
+    # ports:
+    #   - "6379:6379"
+
+  # MCP Inspector (arch §67). Not started by default:
+  #   docker compose --profile tools up inspector
+  # then open the printed URL and connect to http://mcp-hub:8000/mcp over
+  # Streamable HTTP. Recent Inspector versions print a session token you must
+  # paste in; the hub's own auth applies on top (send a bearer token from
+  # `mcp-hub token issue` in the Inspector's headers).
+  inspector:
+    image: node:22-bookworm-slim
+    profiles: ["tools"]
+    command: ["npx", "-y", "@modelcontextprotocol/inspector"]
+    environment:
+      HOST: 0.0.0.0
+      MCP_AUTO_OPEN_ENABLED: "false"
+    ports:
+      - "6274:6274"
+      - "6277:6277"
+    depends_on:
+      - mcp-hub
+
+volumes:
+  pgdata:
+
+# --- two deliberate omissions -------------------------------------------------
+#
+# No `worker` service. Arch §43 lists one as optional and arch §29 describes the
+# architecture; the queue in `app/jobs/queue.py` runs its workers inside the hub
+# process and persists every job to `update_jobs`, so a second container would
+# start an idle queue rather than share this one. Making that real needs a
+# Redis-backed queue — a change to the job system, not to this file.
+#
+# No Docker socket. Docker-sourced integrations need a container runtime, and
+# `/var/run/docker.sock` inside the hub is equivalent to root on the host: any
+# tool call that reached the runtime could start a privileged container. If you
+# accept that trade-off, build with WITH_DOCKER_CLI=1 and add the mount
+# explicitly — it should be a decision with a name on it, not a default.

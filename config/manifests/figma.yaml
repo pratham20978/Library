@@ -1,0 +1,51 @@
+# Figma's official remote MCP server (arch §6.2).
+#
+# Figma publishes this as a hosted Streamable HTTP service, not as a server to
+# self-host, so arch §6.2 is explicit: proxy it, do not fork or rebuild it.
+id: figma
+name: Figma
+description: Design context, screenshots and Code Connect mappings from Figma's remote MCP server.
+namespace: figma
+homepage: https://github.com/figma/mcp-server-guide
+
+source:
+  type: remote
+  endpoint: https://mcp.figma.com/mcp
+  transport: streamable-http
+  verify_tls: true
+  request_timeout_seconds: 120  # design context extraction is slow on large files
+
+trust: remote_official
+
+auth:
+  type: oauth2
+  scopes:
+    - files:read
+  secret:
+    name: FIGMA_TOKEN
+    per_user: true
+    required: false
+
+capabilities:
+  - design-context
+  - code-generation
+  - assets
+
+# Figma's server is predominantly read-oriented; the write surface creates or
+# edits design files, which is recoverable through Figma's own version history.
+risk_level: READ
+tool_risk:
+  get_design_context: READ
+  get_screenshot: READ
+  get_metadata: READ
+  get_variable_defs: READ
+  create_new_file: WRITE
+  upload_assets: WRITE
+  add_code_connect_map: WRITE
+
+confirmation_required:
+  - create
+  - upload
+  - delete
+
+update_policy: manual

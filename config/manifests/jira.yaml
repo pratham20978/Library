@@ -1,0 +1,62 @@
+# Atlassian Rovo MCP Server — Jira, Confluence and Compass (arch §6.1).
+#
+# Treated as a managed remote service: Atlassian operates it, so the hub proxies
+# it rather than cloning or building anything. Atlassian's server enforces the
+# calling user's own Atlassian permissions, which is exactly why `per_user` is
+# set below — a shared token would collapse every caller into one identity and
+# silently widen everyone's access to whoever holds the token.
+id: jira
+name: Jira / Atlassian
+description: Jira, Confluence and Compass via Atlassian's official remote MCP server.
+namespace: jira
+homepage: https://github.com/atlassian/atlassian-mcp-server
+
+source:
+  type: remote
+  endpoint: https://mcp.atlassian.com/v1/mcp
+  transport: streamable-http
+  verify_tls: true
+  request_timeout_seconds: 90
+
+trust: remote_official
+
+auth:
+  type: oauth2
+  scopes:
+    - read:jira-work
+    - write:jira-work
+    - read:confluence-content.all
+  secret:
+    name: ATLASSIAN_TOKEN
+    per_user: true
+    required: false
+
+capabilities:
+  - issue-management
+  - project-management
+  - documentation
+  - search
+
+# Reads are safe; anything that mutates an issue is a write. Deletions are
+# unrecoverable from the hub's side, so they are classified DESTRUCTIVE and the
+# policy engine will demand a human confirmation before any of them run.
+risk_level: WRITE
+tool_risk:
+  searchJiraIssuesUsingJql: READ
+  getJiraIssue: READ
+  getConfluencePage: READ
+  getVisibleJiraProjects: READ
+  createJiraIssue: WRITE
+  editJiraIssue: WRITE
+  addCommentToJiraIssue: WRITE
+  transitionJiraIssue: WRITE
+  deleteJiraIssue: DESTRUCTIVE
+
+confirmation_required:
+  - create
+  - update
+  - edit
+  - delete
+  - transition
+
+update_policy: manual

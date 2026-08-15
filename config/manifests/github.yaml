@@ -1,0 +1,81 @@
+# GitHub's official MCP server (arch §6.3).
+#
+# Vendor-published but run locally, so it is `local_official`: the code is
+# trusted enough to build, and still isolated. The branch is tracked rather than
+# pinned here; the resolved commit is recorded in integrations.lock.yaml at
+# install time, which is what makes the deployment reproducible (arch §33).
+#
+# The server is Go. The git adapter detects `go.mod` and builds with the Go
+# toolchain; if `runtime.isolation` is `container` and the repository ships a
+# Dockerfile, it is built and run as an image instead.
+id: github
+name: GitHub
+description: Repositories, issues, pull requests, code search, workflows and releases.
+namespace: github
+homepage: https://github.com/github/github-mcp-server
+
+source:
+  type: git
+  repository: https://github.com/github/github-mcp-server.git
+  branch: main
+  transport: stdio
+  startup_timeout_seconds: 60
+
+trust: local_official
+
+auth:
+  type: bearer
+  # The GitHub server reads its credential from the environment, so the secret
+  # is injected as a variable rather than an HTTP header.
+  env_var: GITHUB_PERSONAL_ACCESS_TOKEN
+  secret:
+    name: GITHUB_TOKEN
+    per_user: true
+    required: true
+
+runtime:
+  isolation: container
+  read_only_root: true
+  network: outbound
+  run_as_non_root: true
+  cpu_limit: 1.0
+  memory_limit_mb: 512
+  # Only these variables survive into the server's environment. Everything else
+  # in the hub's own environment is stripped before launch (arch §31).
+  allowed_env:
+    - GITHUB_PERSONAL_ACCESS_TOKEN
+    - GITHUB_HOST
+    - GITHUB_TOOLSETS
+    - PATH
+    - HOME
+
+capabilities:
+  - repositories
+  - issues
+  - pull-requests
+  - code-search
+  - workflows
+  - releases
+  - discussions
+
+risk_level: WRITE
+tool_risk:
+  search_code: READ
+  search_repositories: READ
+  get_file_contents: READ
+  list_commits: READ
+  get_pull_request: READ
+  create_issue: WRITE
+  create_or_update_file: WRITE
+  create_pull_request: WRITE
+  merge_pull_request: DESTRUCTIVE
+  delete_file: DESTRUCTIVE
+  delete_repository: DESTRUCTIVE
+
+confirmation_required:
+  - create_pull_request
+  - merge
+  - delete
+  - push
+
+update_policy: manual

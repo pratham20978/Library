@@ -1,0 +1,135 @@
+[project]
+name = "mcp-hub"
+version = "0.1.0"
+description = "Universal MCP Hub — one MCP endpoint, many governed integrations."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+
+dependencies = [
+    # MCP protocol (official SDK, v2 line).
+    "mcp==2.0.0",
+    # HTTP / ASGI surface.
+    "fastapi>=0.121",
+    "uvicorn[standard]>=0.35",
+    "starlette>=0.48",
+    # Models & configuration.
+    "pydantic>=2.12",
+    "pydantic-settings>=2.7",
+    "pyyaml>=6.0.2",
+    # Persistence.
+    "sqlalchemy[asyncio]>=2.0.36",
+    "alembic>=1.14",
+    "asyncpg>=0.30",
+    "aiosqlite>=0.20",
+    # Coordination & caching.
+    "redis>=5.2",
+    # Observability.
+    "structlog>=24.4",
+    "prometheus-client>=0.21",
+    # CLI.
+    "typer>=0.15",
+    "rich>=13.9",
+    # Crypto for the encrypted secret provider (also pulled in by mcp's pyjwt[crypto]).
+    "cryptography>=44",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=1.0",
+    "pytest-cov>=6.0",
+    "anyio>=4.10",
+    "httpx>=0.28",
+    "mypy>=1.14",
+    "ruff>=0.9",
+    "types-pyyaml>=6.0",
+]
+
+[project.scripts]
+mcp-hub = "app.cli.commands:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+# ---------------------------------------------------------------------------
+# Tooling
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 118
+target-version = "py312"
+src = ["app", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",    # pycodestyle
+    "F",         # pyflakes
+    "I",         # isort
+    "N",         # pep8-naming
+    "UP",        # pyupgrade
+    "B",         # bugbear
+    "BLE",       # blind except — every bare `except Exception` must justify itself
+    "C4",        # comprehensions
+    "SIM",       # simplify
+    "TID",       # tidy imports
+    "RUF",       # ruff-specific
+    "ASYNC",     # async correctness
+    "S",         # bandit (security)
+]
+ignore = [
+    "S101",   # assert — used deliberately in tests and invariant checks
+    "B008",   # function call in default arg — FastAPI Depends idiom
+    "SIM108", # ternary rewrites hurt readability in policy code
+    # The hub's exceptions read as conditions, not objects: `raise NotAuthorized(...)`
+    # and `except IntegrationLocked` are clearer than the `...Error` suffix form, and
+    # `HubError` already marks the hierarchy. Consistency here beats the convention.
+    "N818",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "B017", "ASYNC109"]
+"scripts/**" = ["S603", "S607"]
+# `run_command` takes an explicit timeout because expiry must kill the child's
+# whole process group; `asyncio.timeout` would cancel the await and orphan it.
+"app/integrations/process.py" = ["ASYNC109"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+disallow_any_generics = true
+disallow_untyped_decorators = false
+plugins = []
+exclude = ["^runtime/", "^\\.venv/"]
+
+[[tool.mypy.overrides]]
+module = ["yaml.*", "redis.*", "prometheus_client.*", "alembic.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+addopts = "-q --strict-markers --strict-config"
+markers = [
+    "integration: exercises real subprocesses, sockets or containers",
+    "e2e: full agent -> hub -> upstream flows",
+    "security: guards a security invariant",
+    "slow: takes more than a couple of seconds",
+]
+filterwarnings = ["error::DeprecationWarning:app.*"]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError", "@abstractmethod"]

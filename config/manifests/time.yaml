@@ -1,0 +1,36 @@
+# Reference Time server (arch §6.6). Pinned to an exact release.
+#
+# Pure computation over the system clock: no network, no mounts, no credentials.
+# The smallest attack surface of anything the hub ships.
+id: time
+name: Time
+description: Current time and timezone conversion.
+namespace: time
+homepage: https://github.com/modelcontextprotocol/servers
+
+source:
+  type: python
+  package: mcp-server-time
+  version: "2026.7.10"
+  module: mcp_server_time
+  transport: stdio
+
+trust: local_official
+
+runtime:
+  isolation: container
+  read_only_root: true
+  network: none
+  run_as_non_root: true
+  cpu_limit: 0.25
+  memory_limit_mb: 128
+  allowed_env:
+    - PATH
+    - HOME
+
+capabilities:
+  - utilities
+
+risk_level: READ
+
+update_policy: manual

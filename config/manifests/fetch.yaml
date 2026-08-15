@@ -1,0 +1,39 @@
+# Reference Fetch server (arch §6.6). Pinned to an exact release.
+#
+# This one makes outbound requests on the hub's behalf, which is an SSRF surface
+# by construction: the URL comes from the model. It therefore gets `outbound`
+# network and nothing else — no mounts, no host access, no credentials. Fetching
+# is read-only, so no tool here needs confirmation.
+id: fetch
+name: Fetch
+description: Retrieve a URL and convert its content to markdown for the model.
+namespace: fetch
+homepage: https://github.com/modelcontextprotocol/servers
+
+source:
+  type: python
+  package: mcp-server-fetch
+  version: "2026.7.10"
+  module: mcp_server_fetch
+  transport: stdio
+
+trust: local_official
+
+runtime:
+  isolation: container
+  read_only_root: true
+  network: outbound
+  run_as_non_root: true
+  cpu_limit: 0.5
+  memory_limit_mb: 256
+  allowed_env:
+    - PATH
+    - HOME
+
+capabilities:
+  - http
+  - content-extraction
+
+risk_level: READ
+
+update_policy: manual

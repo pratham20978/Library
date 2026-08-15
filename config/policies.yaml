@@ -1,0 +1,225 @@
+# Authorization and tool policy (arch §22, §23).
+#
+# Evaluated for every tool call, in this order, before anything reaches an
+# upstream:
+#
+#   deny  ->  allow  ->  risk thresholds  ->  argument restrictions  ->  rate limit
+#
+# `deny` always wins. A non-empty `allow` list is a closed allowlist: anything
+# not named is refused. That is what makes `tool_exposure_mode: selective`
+# meaningful — the default posture is closed and an operator opens tools
+# deliberately.
+#
+# Confirmation is not a softer deny. A tool that requires confirmation runs only
+# after a human accepts an elicitation, and a client that cannot be asked gets a
+# refusal rather than an implicit yes (arch §53).
+
+version: 1
+
+# Refuse unauthenticated tool calls. Turning this off resolves every caller to
+# the anonymous principal, which disables per-user credentials entirely — only
+# reasonable for a closed local development loop.
+require_authentication: true
+
+# A ceiling applied to every tool call regardless of integration. Per-integration
+# limits below apply in addition, whichever binds first.
+global_rate_limit:
+  requests: 600
+  window_seconds: 60
+  scope: principal
+
+# Inherited by any integration without a rule of its own, and the base every
+# rule below layers over. An integration rule may tighten these thresholds; it
+# cannot loosen them.
+default:
+  deny: []
+  require_confirmation: []
+  # Anything classified DESTRUCTIVE or ADMIN needs a human, whatever its name.
+  # This is the backstop that catches tools an upstream added since the last
+  # time anyone reviewed this file.
+  confirm_risk_at_or_above: DESTRUCTIVE
+  rate_limit:
+    requests: 120
+    window_seconds: 60
+    scope: principal
+
+policies:
+  # ------------------------------------------------------------------ jira
+  jira:
+    allow:
+      - searchJiraIssuesUsingJql
+      - getJiraIssue
+      - getVisibleJiraProjects
+      - getJiraProjectIssueTypesMetadata
+      - lookupJiraAccountId
+      - getConfluencePage
+      - getConfluenceSpaces
+      - searchConfluenceUsingCql
+      - createJiraIssue
+      - editJiraIssue
+      - addCommentToJiraIssue
+      - transitionJiraIssue
+    require_confirmation:
+      - createJiraIssue
+      - editJiraIssue
+      - transitionJiraIssue
+    deny:
+      - deleteJiraIssue      # no deletion path through the hub
+    rate_limit:
+      requests: 60
+      window_seconds: 60
+      scope: principal
+
+  # ----------------------------------------------------------------- figma
+  figma:
+    allow:
+      - get_design_context
+      - get_screenshot
+      - get_metadata
+      - get_variable_defs
+      - get_code_connect_map
+      - search_design_system
+    # Read-only surface: nothing here mutates a Figma file, so nothing needs
+    # confirmation. Add `create_new_file` here and to `require_confirmation`
+    # together if you want the write surface.
+
+  # ---------------------------------------------------------------- notion
+  notion:
+    allow:
+      - search
+      - fetch
+      - create-pages
+      - update-page
+    require_confirmation:
+      - create-pages
+      - update-page
+    deny:
+      - delete-page
+
+  # ---------------------------------------------------------------- github
+  github:
+    allow:
+      - search_code
+      - search_repositories
+      - search_issues
+      - get_file_contents
+      - list_commits
+      - get_commit
+      - list_issues
+      - get_issue
+      - list_pull_requests
+      - get_pull_request
+      - get_pull_request_diff
+      - create_issue
+      - add_issue_comment
+      - create_pull_request
+    require_confirmation:
+      - create_issue
+      - create_pull_request
+      - add_issue_comment
+    deny:
+      - merge_pull_request     # merging is a human decision, not an agent one
+      - delete_repository
+      - delete_file
+      - force_push
+    rate_limit:
+      requests: 90
+      window_seconds: 60
+      scope: principal
+
+  # ---------------------------------------------------------- brave-search
+  # Keys may be an integration id (`brave-search`) or its namespace
+  # (`brave_search`); both resolve to the same integration.
+  brave-search:
+    allow:
+      - brave_web_search
+      - brave_news_search
+      - brave_image_search
+      - brave_video_search
+      - brave_local_search
+      - brave_summarizer
+    rate_limit:
+      # Brave bills per query and the key is shared by the deployment, so this
+      # limit is counted across the whole hub rather than per caller.
+      requests: 60
+      window_seconds: 60
+      scope: integration
+
+  # ----------------------------------------------------------------- fetch
+  fetch:
+    allow:
+      - fetch
+    tools:
+      fetch:
+        # A model-supplied URL is an SSRF vector. The adapter already blocks
+        # private address ranges; this caps how much can be pulled per minute.
+        rate_limit:
+          requests: 30
+          window_seconds: 60
+          scope: principal
+        max_argument_bytes: 8192
+
+  # ------------------------------------------------------------------ time
+  time:
+    allow:
+      - get_current_time
+      - convert_time
+
+  # ------------------------------------------------------------ filesystem
+  # Disabled by default in integrations.yaml. If you enable it, this rule keeps
+  # the agent to reads plus confirmed writes, and refuses deletion outright.
+  filesystem:
+    allow:
+      - read_text_file
+      - read_media_file
+      - list_directory
+      - directory_tree
+      - search_files
+      - get_file_info
+      - list_allowed_directories
+      - write_file
+      - edit_file
+      - create_directory
+    require_confirmation:
+      - write_file
+      - edit_file
+      - create_directory
+    deny:
+      - move_file
+
+  # ------------------------------------------------------------------- git
+  git:
+    allow:
+      - git_status
+      - git_diff
+      - git_diff_unstaged
+      - git_diff_staged
+      - git_log
+      - git_show
+      - git_add
+      - git_commit
+    require_confirmation:
+      - git_add
+      - git_commit
+    deny:
+      - git_reset
+      - git_checkout
+
+  # ---------------------------------------------------------------- memory
+  memory:
+    allow:
+      - read_graph
+      - search_nodes
+      - open_nodes
+      - create_entities
+      - create_relations
+      - add_observations
+    deny:
+      - delete_entities
+      - delete_relations
+      - delete_observations
+
+  # --------------------------------------------------- sequential-thinking
+  sequential-thinking:
+    allow:
+      - sequentialthinking

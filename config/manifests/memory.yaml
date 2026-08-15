@@ -1,0 +1,53 @@
+# Reference Memory server (arch §6.6). Pinned to an exact release.
+#
+# A knowledge graph persisted in the mounted volume. Writes are cheap to make
+# and awkward to audit after the fact, so deletions require confirmation.
+id: memory
+name: Memory
+description: Persistent knowledge-graph memory across sessions.
+namespace: memory
+homepage: https://github.com/modelcontextprotocol/servers
+
+source:
+  type: npm
+  package: "@modelcontextprotocol/server-memory"
+  version: "2026.7.4"
+  transport: stdio
+
+trust: local_official
+
+runtime:
+  isolation: container
+  read_only_root: true
+  network: none
+  run_as_non_root: true
+  cpu_limit: 0.25
+  memory_limit_mb: 256
+  allowed_env:
+    - PATH
+    - HOME
+    - MEMORY_FILE_PATH
+  mounts:
+    - "runtime/memory:/data"
+  writable_paths:
+    - /data
+
+capabilities:
+  - memory
+
+risk_level: WRITE
+tool_risk:
+  read_graph: READ
+  search_nodes: READ
+  open_nodes: READ
+  create_entities: WRITE
+  create_relations: WRITE
+  add_observations: WRITE
+  delete_entities: DESTRUCTIVE
+  delete_relations: DESTRUCTIVE
+  delete_observations: DESTRUCTIVE
+
+confirmation_required:
+  - delete
+
+update_policy: manual
