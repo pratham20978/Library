@@ -38,12 +38,12 @@ to somebody else's server, not a copy of it.
 
 Eleven manifests, all pointing at somebody else's server:
 
-| Integration | Source | Runs |
-|---|---|---|
-| `jira` · `figma` · `notion` | remote | Nothing locally — the hub proxies the vendor's own MCP server. |
-| `github` · `brave-search` | git | Built from the vendor's repository, sandboxed. |
-| `fetch` · `time` · `git` | python | Reference servers, pinned to exact releases. |
-| `filesystem` · `memory` · `sequential-thinking` | npm | Reference servers, pinned to exact releases. |
+| Integration                                             | Source | Runs                                                            |
+| ------------------------------------------------------- | ------ | --------------------------------------------------------------- |
+| `jira` · `figma` · `notion`                     | remote | Nothing locally — the hub proxies the vendor's own MCP server. |
+| `github` · `brave-search`                          | git    | Built from the vendor's repository, sandboxed.                  |
+| `fetch` · `time` · `git`                        | python | Reference servers, pinned to exact releases.                    |
+| `filesystem` · `memory` · `sequential-thinking` | npm    | Reference servers, pinned to exact releases.                    |
 
 ---
 
@@ -80,14 +80,14 @@ Alongside it, on the same process and the same port, sits a REST management API
 for operators. Both surfaces pass through one authentication middleware, so a
 bearer token means the same thing to both.
 
-| Path        | Purpose |
-|-------------|---------|
-| `/mcp`      | The MCP endpoint. Agents connect here and nowhere else. |
-| `/api/...`  | Management REST API (integrations, updates, jobs, audit, secrets, registry). |
-| `/health`   | Liveness — the process is up. Deliberately checks nothing else. |
-| `/ready`    | Readiness — the database is reachable. Unhealthy integrations are reported, not fatal. |
-| `/metrics`  | Prometheus metrics. |
-| `/docs`     | OpenAPI documentation for the management API. |
+| Path         | Purpose                                                                                 |
+| ------------ | --------------------------------------------------------------------------------------- |
+| `/mcp`     | The MCP endpoint. Agents connect here and nowhere else.                                 |
+| `/api/...` | Management REST API (integrations, updates, jobs, audit, secrets, registry).            |
+| `/health`  | Liveness — the process is up. Deliberately checks nothing else.                        |
+| `/ready`   | Readiness — the database is reachable. Unhealthy integrations are reported, not fatal. |
+| `/metrics` | Prometheus metrics.                                                                     |
+| `/docs`    | OpenAPI documentation for the management API.                                           |
 
 ### Request path
 
@@ -144,11 +144,11 @@ scripts/                thin wrappers over the CLI for operators
 
 Configuration is deliberately split by *who owns it*:
 
-| File | Answers | Written by |
-|------|---------|------------|
-| `config/manifests/<id>.yaml` | *How* do we reach this server? | You, or `registry install` |
-| `config/integrations.yaml` | *Which* ones do we want on? | You, or `enable`/`disable`/`install`/`remove` |
-| `config/integrations.lock.yaml` | *What* is actually installed? | The update manager only — never by hand |
+| File                              | Answers                          | Written by                                           |
+| --------------------------------- | -------------------------------- | ---------------------------------------------------- |
+| `config/manifests/<id>.yaml`    | *How* do we reach this server? | You, or`registry install`                          |
+| `config/integrations.yaml`      | *Which* ones do we want on?    | You, or`enable`/`disable`/`install`/`remove` |
+| `config/integrations.lock.yaml` | *What* is actually installed?  | The update manager only — never by hand             |
 
 Dropping a manifest into `config/manifests/` registers an integration; adding it
 to `integrations.yaml` turns it on.
@@ -167,14 +167,14 @@ same code path.
 
 ### Requirements
 
-| | |
-|---|---|
-| **Python** | 3.12 or newer (3.14 recommended) |
-| **[uv](https://docs.astral.sh/uv/)** | environment and lockfile manager |
-| **git** | needed only for git-sourced integrations |
-| **node / npm** | needed only for npm-sourced integrations |
-| **Docker** | needed only for container-isolated or docker-sourced integrations |
-| **PostgreSQL + Redis** | production only; development uses SQLite and in-process locks |
+|                                           |                                                                   |
+| ----------------------------------------- | ----------------------------------------------------------------- |
+| **Python**                          | 3.12 or newer (3.14 recommended)                                  |
+| **[uv](https://docs.astral.sh/uv/)** | environment and lockfile manager                                  |
+| **git**                             | needed only for git-sourced integrations                          |
+| **node / npm**                      | needed only for npm-sourced integrations                          |
+| **Docker**                          | needed only for container-isolated or docker-sourced integrations |
+| **PostgreSQL + Redis**              | production only; development uses SQLite and in-process locks     |
 
 `mcp-hub doctor` tells you which of these you actually need for *your* enabled
 set, so a hub that only proxies remote services needs none of git, npm or
@@ -421,24 +421,24 @@ upstream server comes from. See §7.
 A hub with everything enabled can present several hundred tool schemas, which
 degrades a model's tool selection long before it breaks any protocol limit.
 
-| Mode | What an agent sees |
-|------|--------------------|
-| `full` | Every tool of every healthy integration. |
-| `selective` *(default)* | Only what the policy allowlist admits. |
-| `discovery` | Just the `hub.*` tools; the agent searches, then calls `hub.activate_integration` to load what it needs. |
+| Mode                        | What an agent sees                                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `full`                    | Every tool of every healthy integration.                                                                    |
+| `selective` *(default)* | Only what the policy allowlist admits.                                                                      |
+| `discovery`               | Just the`hub.*` tools; the agent searches, then calls `hub.activate_integration` to load what it needs. |
 
 ### The `hub.*` meta-tools
 
 Always present, whatever the mode, so an agent can orient itself:
 
-| Tool | Use |
-|------|-----|
-| `hub.list_integrations` | What is available, with health and tool counts. Call this first. |
-| `hub.integration_status` | Health, version, credentials and tool count for one integration. |
-| `hub.search_tools` | Find the right tool without loading every schema. |
-| `hub.describe_tool` | One tool's full schema and risk classification. |
-| `hub.health` | Tell an outage apart from a missing tool. |
-| `hub.refresh_tools` | Re-read definitions from an upstream. |
+| Tool                         | Use                                                                  |
+| ---------------------------- | -------------------------------------------------------------------- |
+| `hub.list_integrations`    | What is available, with health and tool counts. Call this first.     |
+| `hub.integration_status`   | Health, version, credentials and tool count for one integration.     |
+| `hub.search_tools`         | Find the right tool without loading every schema.                    |
+| `hub.describe_tool`        | One tool's full schema and risk classification.                      |
+| `hub.health`               | Tell an outage apart from a missing tool.                            |
+| `hub.refresh_tools`        | Re-read definitions from an upstream.                                |
 | `hub.activate_integration` | Discovery mode only: load one integration's tools into this session. |
 
 There is deliberately **no** `hub.execute_shell`, `hub.execute_python`, or
@@ -494,15 +494,15 @@ access.
 
 ### Scopes
 
-| Scope | Grants |
-|-------|--------|
-| `tools:call` | Invoke integration tools through `/mcp`. |
-| `integrations:read` | List integrations, health, tool metadata. |
-| `tools:refresh` | Trigger rediscovery (reconnects to upstreams, so not free). |
-| `integrations:write` | Install, update, enable, disable, remove, roll back. |
-| `secrets:write` | Store or delete credentials. Never grants reading one back. |
-| `audit:read` | Read the audit trail. |
-| `admin` | Everything. For operators; never hand it to an agent. |
+| Scope                  | Grants                                                      |
+| ---------------------- | ----------------------------------------------------------- |
+| `tools:call`         | Invoke integration tools through`/mcp`.                   |
+| `integrations:read`  | List integrations, health, tool metadata.                   |
+| `tools:refresh`      | Trigger rediscovery (reconnects to upstreams, so not free). |
+| `integrations:write` | Install, update, enable, disable, remove, roll back.        |
+| `secrets:write`      | Store or delete credentials. Never grants reading one back. |
+| `audit:read`         | Read the audit trail.                                       |
+| `admin`              | Everything. For operators; never hand it to an agent.       |
 
 `--scope` defaults to the agent set — `tools:call` and `integrations:read`: call
 tools, read status, change nothing. Administrative operations are protected
@@ -645,15 +645,15 @@ mcp-hub tools my-server
 
 ### Manifest fields worth understanding
 
-| Field | Why it matters |
-|-------|----------------|
-| `namespace` | The tool prefix agents see. Defaults to `id` with `-` mapped to `_`. |
-| `trust` | `remote_official` / `local_official` / `community`. Community code needs an explicit install confirmation. |
-| `risk_level` / `tool_risk` | Feeds the policy engine's risk thresholds. Mark deletions `DESTRUCTIVE` and they need a human by default. |
-| `runtime.allowed_env` | An allowlist. The hub's own environment — including its secrets — is not inherited. |
-| `runtime.network` | `none` for a server that should never reach the internet. |
-| `update_policy` | `manual`, or automatic within a version constraint. |
-| `auth.secret.per_user` | Set it whenever the upstream enforces the calling user's permissions. |
+| Field                          | Why it matters                                                                                                   |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `namespace`                  | The tool prefix agents see. Defaults to`id` with `-` mapped to `_`.                                        |
+| `trust`                      | `remote_official` / `local_official` / `community`. Community code needs an explicit install confirmation. |
+| `risk_level` / `tool_risk` | Feeds the policy engine's risk thresholds. Mark deletions`DESTRUCTIVE` and they need a human by default.       |
+| `runtime.allowed_env`        | An allowlist. The hub's own environment — including its secrets — is not inherited.                            |
+| `runtime.network`            | `none` for a server that should never reach the internet.                                                      |
+| `update_policy`              | `manual`, or automatic within a version constraint.                                                            |
+| `auth.secret.per_user`       | Set it whenever the upstream enforces the calling user's permissions.                                            |
 
 Add a matching rule to `config/policies.yaml` at the same time. Without one the
 integration inherits `default`, and under `selective` exposure that means its
@@ -678,13 +678,13 @@ mcp-hub update --all --exclude jira figma  # or repeated — both spellings work
 mcp-hub update --all --dry-run             # show the plan, change nothing
 ```
 
-| Flag | Effect |
-|------|--------|
-| `--dry-run` | Print the plan and exit. Nothing is downloaded or promoted. |
-| `--yes` | Execute without the confirmation prompt. |
-| `--force` | Update even when already at the resolved version. |
-| `--no-rollback-on-failure` | Leave a failed update in place for inspection. Default is to restore. |
-| `--parallel` | Update concurrently. Off by default — a serial run is easier to read when it breaks. |
+| Flag                         | Effect                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
+| `--dry-run`                | Print the plan and exit. Nothing is downloaded or promoted.                           |
+| `--yes`                    | Execute without the confirmation prompt.                                              |
+| `--force`                  | Update even when already at the resolved version.                                     |
+| `--no-rollback-on-failure` | Leave a failed update in place for inspection. Default is to restore.                 |
+| `--parallel`               | Update concurrently. Off by default — a serial run is easier to read when it breaks. |
 
 Always start with `--dry-run`. It resolves versions and shows exactly what would
 change:
@@ -693,8 +693,7 @@ change:
 mcp-hub update --all --dry-run
 ```
 
-Updates are also available over the API — `POST /api/update`, `POST
-/api/update/all`, `POST /api/integrations/{name}/update` — which return a job id
+Updates are also available over the API — `POST /api/update`, `POST /api/update/all`, `POST /api/integrations/{name}/update` — which return a job id
 you poll at `GET /api/jobs/{job_id}`.
 
 After an update, verify:
@@ -727,11 +726,11 @@ credentials are deleted.
 If two integrations use the same key, removing one leaves it in place for the
 other. Delete it yourself with `mcp-hub secrets delete` once you are sure.
 
-| Flag | Effect |
-|------|--------|
-| `--keep-secrets` | Leave this integration's own credentials in place. |
-| `--purge-backups` | Also delete its rollback points. **This makes removal irreversible.** |
-| `--yes` | Skip the confirmation. |
+| Flag                | Effect                                                                     |
+| ------------------- | -------------------------------------------------------------------------- |
+| `--keep-secrets`  | Leave this integration's own credentials in place.                         |
+| `--purge-backups` | Also delete its rollback points.**This makes removal irreversible.** |
+| `--yes`           | Skip the confirmation.                                                     |
 
 Without `--purge-backups`, rollback points survive, so a removal stays reversible
 for as long as your retention window (`MCP_HUB_BACKUP_RETENTION`, default 10)
@@ -1079,14 +1078,14 @@ every integration in one pass, and exits non-zero if anything FAILs:
 
 ### Health statuses
 
-| Status | Meaning | Do |
-|--------|---------|-----|
-| `HEALTHY` | Reachable, tools discovered. | — |
-| `DEGRADED` | Answering, but slowly or partially. | Check `mcp-hub logs <id>`. |
-| `UNAVAILABLE` | Not reachable. | Check the upstream and the network. |
-| `DISABLED` | Switched off in `integrations.yaml`. | `mcp-hub enable <id>`. |
+| Status              | Meaning                                               | Do                                                   |
+| ------------------- | ----------------------------------------------------- | ---------------------------------------------------- |
+| `HEALTHY`         | Reachable, tools discovered.                          | —                                                   |
+| `DEGRADED`        | Answering, but slowly or partially.                   | Check`mcp-hub logs <id>`.                          |
+| `UNAVAILABLE`     | Not reachable.                                        | Check the upstream and the network.                  |
+| `DISABLED`        | Switched off in`integrations.yaml`.                 | `mcp-hub enable <id>`.                             |
 | `UPDATE_REQUIRED` | Not installed, or the installed version cannot start. | `mcp-hub install <id>` or `mcp-hub update <id>`. |
-| `AUTH_REQUIRED` | No usable credential. | `mcp-hub secrets set <NAME>`. |
+| `AUTH_REQUIRED`   | No usable credential.                                 | `mcp-hub secrets set <NAME>`.                      |
 
 `mcp-hub health` exits non-zero when an enabled integration is `UNAVAILABLE`, so
 it works as a deployment gate. Degraded and auth-required states are reported but
@@ -1279,13 +1278,13 @@ of the schema against two versions of the code for the length of the rollout.
 
 ## Reference
 
-| | |
-|---|---|
-| **Specification** | [config/mcp/arch.md](config/mcp/arch.md) — the architecture this implements |
-| **Settings** | [app/config/settings.py](app/config/settings.py) — every `MCP_HUB_*` variable |
-| **Environment template** | [.env.example](.env.example) |
-| **Manifests** | [config/manifests/](config/manifests/) |
-| **API documentation** | `http://localhost:8000/docs` when the hub is running |
-| **MCP specification** | https://modelcontextprotocol.io |
+|                                |                                                                                 |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| **Specification**        | [config/mcp/arch.md](config/mcp/arch.md) — the architecture this implements     |
+| **Settings**             | [app/config/settings.py](app/config/settings.py) — every `MCP_HUB_*` variable |
+| **Environment template** | [.env.example](.env.example)                                                     |
+| **Manifests**            | [config/manifests/](config/manifests/)                                           |
+| **API documentation**    | `http://localhost:8000/docs` when the hub is running                          |
+| **MCP specification**    | https://modelcontextprotocol.io                                                 |
 
 Licensed under Apache-2.0.

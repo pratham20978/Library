@@ -399,7 +399,8 @@ class SecretManager:
 def build_secret_manager(settings: object, *, session_factory: object | None = None) -> SecretManager:
     """Construct the manager described by `Settings`.
 
-    Providers that cannot be constructed (no encryption key, no Vault URL) are
+    Providers that cannot be 
+    (no encryption key, no Vault URL) are
     skipped with a warning rather than aborting startup, so a misconfigured
     optional provider degrades the hub instead of stopping it. The environment
     provider is always available as a floor.
